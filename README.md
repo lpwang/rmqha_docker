@@ -1,0 +1,2 @@
+# rmqha_docker
+基于docker编排高可用的rabbitmq集群
