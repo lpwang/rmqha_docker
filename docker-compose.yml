@@ -1,0 +1,118 @@
+version: "2"
+services:
+  master:
+    image: daocloud.io/library/rabbitmq:3.6.9
+    container_name: rmqha_node0
+    restart: always
+    mem_limit: 256m
+    hostname: rmqha_node0
+    ports: 
+      - 15672:15672
+    volumes:
+      - "./volumes/rmqha_master/cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh"
+      - "/etc/rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config"
+      - "/data/rmqha/master:/var/lib/rabbitmq/mnesia/rabbit"
+    entrypoint: "/usr/local/bin/cluster_entrypoint.sh"
+    command: 
+      - "rabbitmq-server"
+    env_file:
+      - ./parameters.env
+    environment:
+      - CONTAINER_NAME=rmqha_node0
+      - RABBITMQ_HOSTNAME=rmqha_node0
+      - RABBITMQ_NODENAME=rabbit
+  slave1:
+    image: daocloud.io/library/rabbitmq:3.6.9
+    container_name: rmqha_node1
+    restart: always
+    links:
+      - master
+    depends_on:
+      - master
+    mem_limit: 256m
+    hostname: rmqha_node1
+    #ports:
+     # - "15672:15672"
+    volumes:
+      - "./volumes/rmqha_slave/cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh"
+      - "/etc/rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config"
+      - "/data/rmqha/slave1:/var/lib/rabbitmq/mnesia/rabbit"
+    entrypoint: "/usr/local/bin/cluster_entrypoint.sh"
+    command: "rabbitmq-server"
+    env_file:
+      - ./parameters.env
+    environment:
+      - CONTAINER_NAME=rmqha_node1
+      - RABBITMQ_HOSTNAME=rmqha_node1
+      - RABBITMQ_NODENAME=rabbit
+      - RMQHA_RAM_NODE=true
+  slave2:
+    image: daocloud.io/library/rabbitmq:3.6.9
+    container_name: rmqha_node2
+    restart: always
+    links:
+      - master
+    depends_on:
+      - master
+    mem_limit: 256m
+    hostname: rmqha_node2
+    volumes:
+      - "./volumes/rmqha_slave/cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh"
+      - "/etc/rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config"
+      - "/data/rmqha/slave2:/var/lib/rabbitmq/mnesia/rabbit"
+    entrypoint: "/usr/local/bin/cluster_entrypoint.sh"
+    command: "rabbitmq-server"
+    env_file:
+      - ./parameters.env
+    environment:
+      - CONTAINER_NAME=rmqha_node2
+      - RABBITMQ_HOSTNAME=rmqha_node2
+      - RABBITMQ_NODENAME=rabbit
+      - RMQHA_RAM_NODE=true
+  nginx0: 
+    image: daocloud.io/library/nginx:1.13.0-alpine
+    container_name: nginx_node0
+    restart: always
+    depends_on:
+      - master
+      - slave1
+      - slave2
+    ports:
+      - "3000:5672"
+    volumes:
+      - "./volumes/rmqha_proxy/nginx/nginx0/nginx.conf:/etc/nginx/nginx.conf"
+  nginx1: 
+    image: daocloud.io/library/nginx:1.13.0-alpine
+    container_name: nginx_node1
+    restart: always
+    depends_on:
+      - master
+      - slave1
+      - slave2
+      - nginx0
+    #ports:
+      #- "3000:5672"
+    volumes:
+      - "./volumes/rmqha_proxy/nginx/nginx1/nginx.conf:/etc/nginx/nginx.conf"
+  keepalived: 
+    image: alterway/keepalived
+    container_name: keepalived
+    restart: always
+    ports: 
+      - "3000:5672"
+    depends_on:
+      - master
+      - slave1
+      - slave2
+      - nginx0
+      - nginx1
+    environment:
+      - VIRTUAL_IP='1.1.1.1'
+      - VIRTUAL_ROUTER_ID='51'
+      - INTERFACE='docker0'
+      - PRIORITY='100'
+      - PASSWORD='topsecret'
+      - CONTAINERS_TO_CHECK="nginx0 nginx1"
+      - CHECK_FALL='1'
+      - CHECK_RISE='1'
+      - CHECK_CREATION='true'
