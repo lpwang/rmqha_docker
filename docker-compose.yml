@@ -10,7 +10,7 @@ services:
       - 15672:15672
     volumes:
       - "./volumes/rmqha_master/cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh"
-      - "/etc/rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config"
+      - "./volumes/rmqha_master/rabbitmq.config:/etc/rabbitmq/rabbitmq.config"
       - "/data/rmqha/master:/var/lib/rabbitmq/mnesia/rabbit"
     entrypoint: "/usr/local/bin/cluster_entrypoint.sh"
     command: 
@@ -35,7 +35,7 @@ services:
      # - "15672:15672"
     volumes:
       - "./volumes/rmqha_slave/cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh"
-      - "/etc/rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config"
+      - "./volumes/rmqha_slave/rabbitmq.config:/etc/rabbitmq/rabbitmq.config"
       - "/data/rmqha/slave1:/var/lib/rabbitmq/mnesia/rabbit"
     entrypoint: "/usr/local/bin/cluster_entrypoint.sh"
     command: "rabbitmq-server"
@@ -58,7 +58,7 @@ services:
     hostname: rmqha_node2
     volumes:
       - "./volumes/rmqha_slave/cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh"
-      - "/etc/rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config"
+      - "./volumes/rmqha_slave/rabbitmq.config:/etc/rabbitmq/rabbitmq.config"
       - "/data/rmqha/slave2:/var/lib/rabbitmq/mnesia/rabbit"
     entrypoint: "/usr/local/bin/cluster_entrypoint.sh"
     command: "rabbitmq-server"
@@ -116,3 +116,7 @@ services:
       - CHECK_FALL='1'
       - CHECK_RISE='1'
       - CHECK_CREATION='true'
+networks:
+  default:
+    external:
+      name: compose-bridge
